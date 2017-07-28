@@ -3,17 +3,18 @@
 clear,clc,tic
 close all
 I1=sqrt(-1);
+opengl software;
 
 %Two oppositely circularly polarized time-delayed as pulses: PRL 115 113004 2015
 nt=100;
-W=3/27.2;    %1.323
-T=12*pi/W;  %
+W=3/27.2;    %0.1103
+T=12*pi/W;  %Pulse width = 12*3.14/(3/27.2) = 341.8
 %T=2000; %pulse width in atomic units
 tau=T;
 E0=sqrt(3.5e14/3.5e16);
 Ip=12.13/27.2;  %He=0.9037 for He
 ksi=1;
-dt=8*tau/(nt-1);   %8* Time increment for loop iteration
+dt=8*tau/(nt-1);   %8*341.8/(100-1) = 27.62 Time increment for loop iteration
 t(nt)=NaN;
 td(nt)=NaN;
 Ex(nt)=NaN;
@@ -21,42 +22,43 @@ Ey(nt)=NaN;
 F(nt)=NaN;
 Fd(nt)=NaN;
 for i=1:nt
-    t(i) =(i-3.0*nt/10)*dt;     %Time variable for 1st pulse, iterated by increments of dt
-    td(i)=(i-7.0*nt/10)*dt;     %Time variable for the 2nd (delayed) pulse, iterated by increments of dt
+    t(i) =(i-3.0*nt/10)*dt;     %Time variable for 1st pulse: [-29,70]dt increments of dt
+    td(i)=(i-7.0*nt/10)*dt;     %Time variable for the 2nd (delayed) pulse: [-69,30]dt increments of dt
     F(i)=exp(-t(i)^2/T^2);      %Envelop function for 1st pulse, Gaussian
     Fd(i)=exp(-td(i)^2/T^2);    %Envelop fuction for the 2nd (delayed) pulse, Gaussian
     Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*t(i)+0) + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*td(i)+0*pi/2);
-    Ey(i)=   F(i)*E0*ksi/(1+ksi^2)^0.5*cos(1.0*W*t(i)+0) + 1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*cos(1.0*W*td(i)+0*pi/2);
+    Ey(i)=   F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*W*t(i)+0) + 1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*W*td(i)+0*pi/2);
 end
 
-figure, plot(t,Ex);
+figure, plot3(t,Ex,Ey)
 
 %Vector potential
+% E(t) = -dA(t)/dt  =>  A(t) = -Integral (t0 to t) E(t')dt'
 Ax(nt)=NaN;
 Ay(nt)=NaN;
 for i=1:nt
-    jkx=0;      %Current density?
+    jkx=0;
     jky=0;
     for j=1:i
-        jkx=jkx-Ex(j)*dt;
-        jky=jky-Ey(j)*dt;
+        jkx=jkx-Ex(j)*dt;   %Subtract Ex(t')dt' for t'=j*dt from jkx (adding one slice of the integral)
+        jky=jky-Ey(j)*dt;   %Do the same for jky with Ey
     end
-    Ax(i)=jkx;
-    Ay(i)=jky;
+    Ax(i)=jkx;  %Set Ax(t) = jkx = - Integral (1 to t) Ex(t')dt'
+    Ay(i)=jky;  %Do the same for jky with Ey
 end
 
 %Momentum
 nx=100;
 Px(nx)=NaN;
 dpx=3/(nx-1);
-for i=1:nx
-    Px(i)=(i-nx/2-1/2)*dpx;     %Setting up the x momentum array list
+for i=1:nx                      %Setting up the x momentum array list
+    Px(i)=(i-nx/2-1/2)*dpx;     %Px in [-49.5,49.5] in increments of dpx=1/33
 end
 ny=100;
 Py(ny)=NaN;
 dpy=3/(ny-1);
-for i=1:ny
-    Py(i)=(i-ny/2-1/2)*dpy;    %Setting up the y momentum array list
+for i=1:ny                      %Do the same for the y momentum
+    Py(i)=(i-ny/2-1/2)*dpy;    
 end
 
 %Momentum spectra
@@ -75,10 +77,11 @@ for ix=1:nx
         jkM=0;
         for it=1:nt
             phase=0;
-            for it2=it:nt
+            for it2=it:nt %phase = Integral (t to tf) (Px(x)-Ax(t))^2/2 + (Py(y)-Ay(t))^2/2
                 %phase=phase+dt*( (Px(ix)-Ax(it2))^2/2+(Py(iy)-Ay(it2))^2/2+Ip +0.1*(F(it)+Fd(it)) );
                 phase=phase+dt*( (Px(ix)+Ax(it2))^2/2+(Py(iy)+Ay(it2))^2/2+Ip );
             end
+            %jkM = Integral (1 to tf) i*(Ex(t)*M(x,y)+Ey(t)*M(x,y))*e^(-i*phi)dt
             jkM=jkM+sqrt(-1)*dt*Ex(it)*Mx(ix,iy)*exp(-sqrt(-1)*phase);
             jkM=jkM+sqrt(-1)*dt*Ey(it)*My(ix,iy)*exp(-sqrt(-1)*phase);
         end
