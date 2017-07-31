@@ -26,8 +26,8 @@ for i=1:nt
     td(i)=(i-7.0*nt/10)*dt;     %Time variable for the 2nd (delayed) pulse: [-69,30]dt increments of dt or [-1905.8,816] w/ center at -544.9 | center separation 1111.11 = 3.2507*T
     F(i)=exp(-t(i)^2/T^2);      %Envelop function for 1st pulse, Gaussian
     Fd(i)=exp(-td(i)^2/T^2);    %Envelop fuction for the 2nd (delayed) pulse, Gaussian
-    Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*t(i)+0) + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(-1.0*W*td(i)+pi/2);
-    Ey(i)=   F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*W*t(i)+0) + 1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(-1.0*W*td(i)+pi/2);
+    Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*t(i)+0) + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*td(i));
+    Ey(i)=   F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*W*t(i)+0) + 1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*W*td(i));
 end
 plotrange = linspace(min(td),max(t),nt);
 figure, plot(plotrange,E0*F/sqrt(2),'b', ...
@@ -35,7 +35,7 @@ figure, plot(plotrange,E0*F/sqrt(2),'b', ...
         plotrange,sqrt(Ex.^2+Ey.^2),'g'), ...
         legend('1st Pulse Envelope','2nd Pulse Envelope','E-field Magnitude'), ...
         xlabel('time')
-figure, plot3(plotrange,Ex,Ey), xlabel('time'), ylabel('Ex'), zlabel('Ey')
+figure, plot3(plotrange,Ex,Ey), xlabel('time'), ylabel('Ex'), zlabel('Ey'), set(gca, 'YDir','reverse')
 
 %Vector potential
 % E(t) = -dA(t)/dt  =>  A(t) = -Integral (t0 to t) E(t')dt'
