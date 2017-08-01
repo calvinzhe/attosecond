@@ -7,14 +7,14 @@ opengl software;
 
 %Two oppositely circularly polarized time-delayed as pulses: PRL 115 113004 2015
 nt=500;
-W=3/27.2;    %0.1103
-T=12*pi/W;  %Pulse width = 12*3.14/(3/27.2) = 341.8 | e^(-T^2/T^2) = e^(-1) = 0.3679
+W=3/27.2;    %0.1103 angular frequency => Period = 2*pi/W = 56.9675
+T=6*2*pi/W;  %Pulse width = N*Period = 6*[2*3.14/(3/27.2)] = 341.8 | e^(-T^2/T^2) = e^(-1) = 0.3679
 %T=2000; %pulse width in atomic units
-tau=T;
+tau=T;       %Pulse separation
 E0=sqrt(3.5e14/3.5e16);
 Ip=12.13/27.2;  %He=0.9037 for He
 ksi=1;
-dt=8*tau/(nt-1);   %8*341.8/(100-1) = 27.62 Time increment for loop iteration
+dt=8*T/(nt-1);   %8*341.8/(100-1) = 27.62 Time increment for loop iteration
 t(nt)=NaN;
 td(nt)=NaN;
 Ex(nt)=NaN;
@@ -22,12 +22,12 @@ Ey(nt)=NaN;
 F(nt)=NaN;
 Fd(nt)=NaN;
 for i=1:nt
-    t(i) =(i-3.0*nt/10)*dt;     %Time variable for 1st pulse: [-29,70]dt increments of dt or [-800.98,1933.4] w/ center at 566.21
-    td(i)=(i-7.0*nt/10)*dt;     %Time variable for the 2nd (delayed) pulse: [-69,30]dt increments of dt or [-1905.8,816] w/ center at -544.9 | center separation 1111.11 = 3.2507*T
+    t(i) =(i-(nt-1)/2)*dt+tau/2;     %Time variable for 1st pulse: [-29,70]dt increments of dt or [-800.98,1933.4] w/ center at 566.21
+    td(i)=(i-(nt-1)/2)*dt-tau/2;     %Time variable for the 2nd (delayed) pulse: [-69,30]dt increments of dt or [-1905.8,816] w/ center at -544.9 | center separation 1111.11 = 3.2507*T
     F(i)=exp(-t(i)^2/T^2);      %Envelop function for 1st pulse, Gaussian
     Fd(i)=exp(-td(i)^2/T^2);    %Envelop fuction for the 2nd (delayed) pulse, Gaussian
-    Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*t(i)+0) + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*td(i));
-    Ey(i)=   F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*W*t(i)+0) + 1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*W*td(i));
+    Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*t(i)+0) + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(-1.0*W*td(i));
+    Ey(i)=   F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*W*t(i)+0) + 1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(-1.0*W*td(i));
 end
 plotrange = linspace(min(td),max(t),nt);
 figure, plot(plotrange,E0*F/sqrt(2),'b', ...
@@ -100,6 +100,7 @@ xlabel('Px (a.u.)');
 ylabel('Py (a.u.)');
 axis([-1 1 -1 1]);
 title('Photoelectron Momentum Distribution');
+
 
 % figure
 % pcolor(Px,Py,abs(P').^2);

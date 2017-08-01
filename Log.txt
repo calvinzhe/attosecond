@@ -1,0 +1,6 @@
+7/13/2017:
+At this point, all that I can do is generate momentum distributions for various phase-difference values, and for various tau values, and see if any spiral structures appear.
+
+I could look more closely into the parameters, but due to my lack of knowledge of how this program was designed, and how the latter half of the code generates the momentum distributions, I would not know what to change.  I would have to get in touch with the people who wrote the code and ask them directly.
+
+- Calvin He
