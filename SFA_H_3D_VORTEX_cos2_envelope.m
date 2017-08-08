@@ -41,129 +41,134 @@ elseif strcmp(polarization, 'LL')
     p1 = 1; p2 = 1;
 end
 
+for i_time=1:50
+    parfor i=1:nt
+        %{
+        t(i) =4*(i-nt/2-1/2)*dt;
+        F(i)=exp(-(t(i)+tau/2)^2/T^2);
+        Fd(i)=exp(-(t(i)-tau/2)^2/T^2);
+        Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*(t(i)+tau/2)+0) + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*(t(i)-tau/2)+0*pi/2);
+        Ey(i)=   F(i)*E0*ksi/(1+ksi^2)^0.5*cos(1.0*W*(t(i)+tau/2)+0) + 1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*cos(1.0*W*(t(i)-tau/2)+0*pi/2);
+        %}
+        t(i) =(2*i-nt-1)*dt;
+        if (t(i)+tau/2 > T/2) || (t(i)+tau/2 < -T/2) || (i > 10*i_time), F(i) = 0
+        else, F(i)= cos(pi*(t(i)+tau/2)/T)^2, end %Envelop function for 1st pulse
+        if (t(i)-tau/2 > T/2) || (t(i)-tau/2 < -T/2) || (i > 10*i_time), Fd(i) = 0
+        else, Fd(i)= cos(pi*(t(i)-tau/2)/T)^2, end %Envelop fuction for the 2nd (delayed) pulse
+        Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p1*W*(t(i)+tau/2)+phi1) + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p2*W*(t(i)-tau/2)+phi2);
+        Ey(i)=   pc*F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p1*W*(t(i)+tau/2)+phi1) + pc*1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p2*W*(t(i)-tau/2)+phi2);
 
-parfor i=1:nt
-    %{
-    t(i) =4*(i-nt/2-1/2)*dt;
-    F(i)=exp(-(t(i)+tau/2)^2/T^2);
-    Fd(i)=exp(-(t(i)-tau/2)^2/T^2);
-    Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*(t(i)+tau/2)+0) + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*W*(t(i)-tau/2)+0*pi/2);
-    Ey(i)=   F(i)*E0*ksi/(1+ksi^2)^0.5*cos(1.0*W*(t(i)+tau/2)+0) + 1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*cos(1.0*W*(t(i)-tau/2)+0*pi/2);
-    %}
-    t(i) =(2*i-nt-1)*dt;
-    if (t(i)+tau/2 > T/2) || (t(i)+tau/2 < -T/2), F(i) = 0
-    else, F(i)= cos(pi*(t(i)+tau/2)/T)^2, end %Envelop function for 1st pulse
-    if (t(i)-tau/2 > T/2) || (t(i)-tau/2 < -T/2), Fd(i) = 0
-    else, Fd(i)= cos(pi*(t(i)-tau/2)/T)^2, end %Envelop fuction for the 2nd (delayed) pulse
-    Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p1*W*(t(i)+tau/2)+phi1) + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p2*W*(t(i)-tau/2)+phi2);
-    Ey(i)=   pc*F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p1*W*(t(i)+tau/2)+phi1) + pc*1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p2*W*(t(i)-tau/2)+phi2);
+    end
     
-end
-plotrange = linspace(min(t),max(t),nt);
+    plotrange = linspace(min(t),max(t),nt);
 
-figure;
-plot(plotrange,E0*F/sqrt(2),'b', ...
-        plotrange,E0*Fd/sqrt(2),'r', ...
-        plotrange,sqrt(Ex.^2+Ey.^2),'g');
-legend('1st Pulse Envelope','2nd Pulse Envelope','E-field Magnitude');
-xlabel('time');
+    figA = figure;
+    plot(plotrange,E0*F/sqrt(2),'b', ...
+            plotrange,E0*Fd/sqrt(2),'r', ...
+            plotrange,sqrt(Ex.^2+Ey.^2),'g');
+    legend('1st Pulse Envelope','2nd Pulse Envelope','E-field Magnitude');
+    xlabel('time');
 
-figure;
-plot3(plotrange,Ex,Ey);
-xlabel('time');
-ylabel('Ex');
-zlabel('Ey');
-set(gca, 'YDir','reverse');
-
-
-
-
-%Vector potential
-% E(t) = -dA(t)/dt  =>  A(t) = -Integral (t0 to t) E(t')dt'
-Ax(nt)=NaN;
-Ay(nt)=NaN;
-parfor i=1:nt
-    jkx=0;
-    jky=0;
-    for j=1:i
-        jkx=jkx-Ex(j)*dt;   %Subtract Ex(t')dt' for t'=j*dt from jkx (adding one slice of the integral)
-        jky=jky-Ey(j)*dt;   %Do the same for jky with Ey
+    figB = figure;
+    plot3(plotrange,Ex,Ey);
+    xlabel('time');
+    ylabel('Ex');
+    zlabel('Ey');
+    set(gca, 'YDir','reverse');
+    
+    if i_time < 10, zeroes = '00';
+    elseif i_time < 100, zeroes = '0';
+    elseif i_time < 1000, zeroes = '';
     end
-    Ax(i)=jkx;  %Set Ax(t) = jkx = - Integral (1 to t) Ex(t')dt'
-    Ay(i)=jky;  %Do the same for jky with Ey
-end
+    
+    saveas(figA, strcat('./cos2_time_cutoff_6_opticycles/Envelope_E-field_Magnitude',zeroes,num2str(i_time),'.png'));
+    saveas(figB, strcat('./cos2_time_cutoff_6_opticycles/E-field_',zeroes,num2str(i_time),'.png'));
 
-%Momentum
-nx=200;
-Px(nx)=NaN;
-dpx=4/(nx-1);
-parfor i=1:nx                      %Setting up the x momentum array list
-    Px(i)=(i-nx/2-1/2)*dpx;     %Px in [-49.5,49.5] in increments of dpx=1/33
-end
-ny=200;
-Py(ny)=NaN;
-dpy=4/(ny-1);
-parfor i=1:ny                      %Do the same for the y momentum
-    Py(i)=(i-ny/2-1/2)*dpy;    
-end
 
-%Momentum spectra
-Mx(nx,ny)=NaN;
-My(nx,ny)=NaN;
-P(nx,ny)=NaN;
-tic
 
-parfor ix=1:nx
-    for iy=1:ny
-
-        %K=sqrt(Px(ix)^2+Py(iy)^2);
-        %Mx(ix,iy)=sqrt(128/3)*sqrt(K)*((K-I1)/(-K-I1))^(I1/k)*sqrt(1+coth(pi/K));
-        %
-        Mx(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Px(ix)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
-        My(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Py(iy)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
-        jkM=0;
-        for it=1:nt
-            phase=0;
-            for it2=it:nt %phase = Integral (t to tf) (Px(x)-Ax(t))^2/2 + (Py(y)-Ay(t))^2/2
-                %phase=phase+dt*( (Px(ix)-Ax(it2))^2/2+(Py(iy)-Ay(it2))^2/2+Ip +0.1*(F(it)+Fd(it)) );
-                phase=phase+dt*( (Px(ix)+Ax(it2))^2/2+(Py(iy)+Ay(it2))^2/2+Ip );
-            end
-            %jkM = Integral (1 to tf) i*(Ex(t)*M(x,y)+Ey(t)*M(x,y))*e^(-i*phi)dt
-            jkM=jkM+sqrt(-1)*dt*Ex(it)*Mx(ix,iy)*exp(-sqrt(-1)*phase);
-            jkM=jkM+sqrt(-1)*dt*Ey(it)*My(ix,iy)*exp(-sqrt(-1)*phase);
-            P(ix,iy)=jkM;
+    %Vector potential
+    % E(t) = -dA(t)/dt  =>  A(t) = -Integral (t0 to t) E(t')dt'
+    Ax(nt)=NaN;
+    Ay(nt)=NaN;
+    parfor i=1:nt
+        jkx=0;
+        jky=0;
+        for j=1:i
+            jkx=jkx-Ex(j)*dt;   %Subtract Ex(t')dt' for t'=j*dt from jkx (adding one slice of the integral)
+            jky=jky-Ey(j)*dt;   %Do the same for jky with Ey
         end
+        Ax(i)=jkx;  %Set Ax(t) = jkx = - Integral (1 to t) Ex(t')dt'
+        Ay(i)=jky;  %Do the same for jky with Ey
     end
-    ix
+
+    %Momentum
+    nx=200;
+    Px(nx)=NaN;
+    dpx=4/(nx-1);
+    parfor i=1:nx                      %Setting up the x momentum array list
+        Px(i)=(i-nx/2-1/2)*dpx;     %Px in [-49.5,49.5] in increments of dpx=1/33
+    end
+    ny=200;
+    Py(ny)=NaN;
+    dpy=4/(ny-1);
+    parfor i=1:ny                      %Do the same for the y momentum
+        Py(i)=(i-ny/2-1/2)*dpy;    
+    end
+
+    %Momentum spectra
+    Mx(nx,ny)=NaN;
+    My(nx,ny)=NaN;
+    P(nx,ny)=NaN;
+    tic
+
+    parfor ix=1:nx
+        for iy=1:ny
+
+            %K=sqrt(Px(ix)^2+Py(iy)^2);
+            %Mx(ix,iy)=sqrt(128/3)*sqrt(K)*((K-I1)/(-K-I1))^(I1/k)*sqrt(1+coth(pi/K));
+            %
+            Mx(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Px(ix)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
+            My(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Py(iy)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
+            jkM=0;
+            for it=1:nt
+                phase=0;
+                for it2=it:nt %phase = Integral (t to tf) (Px(x)-Ax(t))^2/2 + (Py(y)-Ay(t))^2/2
+                    %phase=phase+dt*( (Px(ix)-Ax(it2))^2/2+(Py(iy)-Ay(it2))^2/2+Ip +0.1*(F(it)+Fd(it)) );
+                    phase=phase+dt*( (Px(ix)+Ax(it2))^2/2+(Py(iy)+Ay(it2))^2/2+Ip );
+                end
+                %jkM = Integral (1 to tf) i*(Ex(t)*M(x,y)+Ey(t)*M(x,y))*e^(-i*phi)dt
+                jkM=jkM+sqrt(-1)*dt*Ex(it)*Mx(ix,iy)*exp(-sqrt(-1)*phase);
+                jkM=jkM+sqrt(-1)*dt*Ey(it)*My(ix,iy)*exp(-sqrt(-1)*phase);
+                P(ix,iy)=jkM;
+            end
+        end
+        ix
+    end
+
+    fig = figure;
+    imagesc(Px,Py,abs(P').^2);
+    set(gca, 'YDir','normal');
+    colorbar;
+    xlabel('Px (a.u.)');
+    ylabel('Py (a.u.)');
+    axis([-2 2 -2 2]);
+    title('Photoelectron Momentum Distribution');
+    str1 = {strcat('$$\tau = ', num2str(round(tau,1)), '\ au$$'), ...
+            strcat('$$T = ', num2str(round(T,1)), '\ au$$'), ...
+            strcat('$$\lambda = ', num2str(round(lambda,1)),'\ nm$$')};
+    text(-1.95,1.65,str1,'Interpreter','latex','BackgroundColor','yellow');
+    str2 = {strcat('$$\phi_1 = ', num2str(round(phi1/pi,1)), '\ \pi$$'), ...
+            strcat('$$\phi_2 = ', num2str(round(phi2/pi,1)), '\ \pi$$')};
+    text(-1.95,-1.7,str2,'Interpreter','latex','BackgroundColor','yellow');
+    str3 = {strcat('$$n_c = ', num2str(nc),'$$')};
+    text(1.5,1.85,str3,'Interpreter','latex','BackgroundColor','yellow');
+    str4 = {strcat('$$Polarization = ', polarization,'$$')};
+    text(0.25,-1.85,str4,'Interpreter','latex','BackgroundColor','yellow');
+    pbaspect([1 1 1]);
+
+    saveas(fig,strcat('./cos2_time_cutoff_6_opticycles/Momentum_Distribution_',zeroes,num2str(i_time),'.png'))
+
 end
-
-fig = figure;
-imagesc(Px,Py,abs(P').^2);
-set(gca, 'YDir','normal');
-colorbar;
-xlabel('Px (a.u.)');
-ylabel('Py (a.u.)');
-axis([-2 2 -2 2]);
-title('Photoelectron Momentum Distribution');
-str1 = {strcat('$$\tau = ', num2str(round(tau,1)), '\ au$$'), ...
-        strcat('$$T = ', num2str(round(T,1)), '\ au$$'), ...
-        strcat('$$\lambda = ', num2str(round(lambda,1)),'\ nm$$')};
-text(-1.95,1.65,str1,'Interpreter','latex','BackgroundColor','yellow');
-str2 = {strcat('$$\phi_1 = ', num2str(round(phi1/pi,1)), '\ \pi$$'), ...
-        strcat('$$\phi_2 = ', num2str(round(phi2/pi,1)), '\ \pi$$')};
-text(-1.95,-1.7,str2,'Interpreter','latex','BackgroundColor','yellow');
-str3 = {strcat('$$n_c = ', num2str(nc),'$$')};
-text(1.5,1.85,str3,'Interpreter','latex','BackgroundColor','yellow');
-str4 = {strcat('$$Polarization = ', polarization,'$$')};
-text(0.25,-1.85,str4,'Interpreter','latex','BackgroundColor','yellow');
-pbaspect([1 1 1]);
-
-if it < 10, zeroes = '00';
-elseif it < 100, zeroes = '0';
-elseif it < 1000, zeroes = '';
-end
-saveas(fig,strcat('./CCP_RL_cos2_tau_sweep/',zeroes,num2str(it),'.png'))
-
 
 
 
