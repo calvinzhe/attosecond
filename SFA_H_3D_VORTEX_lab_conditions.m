@@ -160,21 +160,26 @@ for i_tau=50:50
     text(0.05,-0.90,str4,'Interpreter','latex','BackgroundColor','yellow');
     pbaspect([1 1 1]);
     
+    %Frige peak separation
     Prob = abs(P(100,1:100)');
-    i_max = find(max(Prob));
-    i_nextmax = 0;
-    disqual_i = [i_max];
-    temp_Prob = Prob;
-    while i_nextmax == 0
-        i_nextmax_d = find(Prob==max(Prob(Prob<max(temp_Prob))));
-        if (Prob(i_nextmax_d) > Prob(i_nextmax_d+1)) || (Prob(i_nextmax_d) > Prob(i_nextmax_d-2))
-            i_nextmax = i_nextmax_d;
-        else
-            temp_Prob(i_nextmax_d) = 0;
-            disqual_i = [disqual_i; i_nextmax_d];
-        end
+    [arlen, arwid] = size(Prob);    %Get array length of 1D array
+    maxima = [];                    %Instantiate maxima list
+    for i=2:arlen-2                 %Iterate over indices with indices = index-1 and index+1 present
+       if Prob(i) > Prob(i-1) && Prob(i) > Prob(i+1)
+           maxima = [maxima; i];    %If value at index i is greater than adjacent values, add index to maxima list
+       end
     end
+    maxima_vals = Prob(maxima);     %Values at maxima
+    max1 = maxima(maxima_vals==max(maxima_vals));     %Index of largest maxima
+    max2 = maxima(maxima_vals==max(maxima_vals(maxima_vals<max(maxima_vals))));   %Index of 2nd largest maxima
     
+    delta_p = abs(Px(max1) - Px(max2)); %p separation
+    delta_E = abs(Px(max1)^2-Px(max2)^2)/2*27.211;  %E separation
+    strp = {strcat('$$\Delta p_F = ',num2str(round(delta_p,2)),'\ au$$'), ...
+        strcat('$$\Delta E_F = ',num2str(round(delta_E,2)),'\ eV$$')};
+    hold on
+    plot([Px(max1),Px(max2)],[0,0],'Color','r','LineWidth',2);  %Draws line between peaks
+    text((Px(max1)+Px(max2))/2,0.2,strp,'Interpreter','latex','BackgroundColor','cyan');
     %saveas(fig,strcat('./Lab_Conditions_Tau_Sweep/Momentum_Distribution_',zeroes,num2str(i_tau),'.png'))
 
 end
