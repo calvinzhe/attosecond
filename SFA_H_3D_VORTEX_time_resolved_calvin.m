@@ -64,17 +64,16 @@ Mx(nx,ny)=NaN;
 My(nx,ny)=NaN;
 P(nx,ny)=NaN;
 tic
+for it=1:nt
+    parfor ix=1:nx
+        for iy=1:ny
 
-parfor ix=1:nx
-    for iy=1:ny
-
-        %K=sqrt(Px(ix)^2+Py(iy)^2);
-        %Mx(ix,iy)=sqrt(128/3)*sqrt(K)*((K-I1)/(-K-I1))^(I1/k)*sqrt(1+coth(pi/K));
-        %
-        Mx(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Px(ix)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
-        My(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Py(iy)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
-        jkM=0;
-        for it=1:nt
+            %K=sqrt(Px(ix)^2+Py(iy)^2);
+            %Mx(ix,iy)=sqrt(128/3)*sqrt(K)*((K-I1)/(-K-I1))^(I1/k)*sqrt(1+coth(pi/K));
+            %
+            Mx(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Px(ix)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
+            My(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Py(iy)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
+            jkM=0;
             phase=0;
             for it2=it:nt
                 %phase=phase+dt*( (Px(ix)-Ax(it2))^2/2+(Py(iy)-Ay(it2))^2/2+Ip +0.1*(F(it)+Fd(it)) );
@@ -82,19 +81,19 @@ parfor ix=1:nx
             end
             jkM=jkM+sqrt(-1)*dt*Ex(it)*Mx(ix,iy)*exp(-sqrt(-1)*phase);
             jkM=jkM+sqrt(-1)*dt*Ey(it)*My(ix,iy)*exp(-sqrt(-1)*phase);
+            P(ix,iy)=P(ix,iy)+jkM;
         end
-        P(ix,iy)=jkM;
     end
+    fig = figure;
+    imagesc(Px,Py,abs(P').^2);
+    set(gca,'YDir','normal');
+    xlabel('Px (a.u.)');
+    ylabel('Py (a.u.)');
+    axis([-1 1 -1 1]);
+    title('Photoelectron Momentum Distribution');
+    saveas(fig,'./time_resolved/',num2str(it),'.png');
 end
     
-
-fig = figure;
-imagesc(Px,Py,abs(P').^2);
-set(gca,'YDir','normal');
-xlabel('Px (a.u.)');
-ylabel('Py (a.u.)');
-axis([-1 1 -1 1]);
-title('Photoelectron Momentum Distribution');
 
 
 

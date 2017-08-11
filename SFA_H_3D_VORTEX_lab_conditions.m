@@ -15,7 +15,7 @@ T=nc*pi/W;  %Pulse width = N*Period = 6*[2*3.14/(3/27.2)] = 341.8 | e^(-T^2/T^2)
 %T=2000; %pulse width in atomic units
 tau=4*T;       %Pulse separation
 phi1 = 0;
-phi2 = pi/2;
+phi2 = 0;
 E0=sqrt(3.5e15/3.5e16);
 Ip=0.9037/6;  %H=12.13/27.2  |  He=0.9037 for He
 ksi=1;
@@ -27,31 +27,33 @@ Ey(nt)=NaN;
 F(nt)=NaN;
 Fd(nt)=NaN;
 
-polarization = 'RR'; %Polarization variable (see below)
-pc = 1; p1 = 1; p2 = 1;
+polarization = 'Lin Ortho'; %Polarization variable (see below)
+pc = 1; p1 = 1; p2 = 1; po = 1; poi=0;
 if strcmp(polarization, 'LR')
     p1 = -1; p2 = 1;
 elseif strcmp(polarization, 'RL')
     p1 = 1; p2 = -1;
-elseif strcmp(polarization, 'Linear')
-    pc = 0;
+elseif strcmp(polarization, 'Lin Ident')
+    py = 0;
+elseif strcmp(polarization, 'Lin Ortho')
+    py = 1; po = 0; poi = 1;        %Polarization orthogonal identical CEP
 elseif strcmp(polarization, 'LL')
     p1 = -1; p2 = -1;
 elseif strcmp(polarization, 'RR')
     p1 = 1; p2 = 1;
 end
 
-for i_tau=50:50
-    tau = i_tau*4*T/50;
+for i_tau=1:50
+    tau = i_tau*T/6/50;
     parfor i=1:nt
         t(i) = 4*(2*i-nt-1)*dt;
         F(i)=exp(-(t(i)+tau/2)^2/T^2);
         Fd(i)=exp(-(t(i)-tau/2)^2/T^2);
-        Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p1*W*(t(i)+tau/2)+phi1)    + 1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p2*W*(t(i)-tau/2)+phi2);
-        Ey(i)=   pc*F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p1*W*(t(i)+tau/2)+phi1) + pc*1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p2*W*(t(i)-tau/2)+phi2);
+        Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p1*W*(t(i)+tau/2)+phi1)    + po*1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p2*W*(t(i)-tau/2)+phi2);
+        Ey(i)=   po*py*F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p1*W*(t(i)+tau/2)+phi1) + py*1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p2*W*(t(i)-tau/2)+poi*pi/2+phi2);
     end
 
-    %{
+    
     plotrange = linspace(min(t),max(t),nt);
 
     figA = figure;
@@ -67,7 +69,7 @@ for i_tau=50:50
     ylabel('Ex');
     zlabel('Ey');
     
-    %}
+    
 
     
     if i_tau < 10, zeroes = '00';
@@ -75,8 +77,9 @@ for i_tau=50:50
     elseif i_tau < 1000, zeroes = '';
     end
     
-    %saveas(figA, strcat('./cos2_time_cutoff_6_opticycles/Envelope_E-field_Magnitude',zeroes,num2str(i_time),'.png'));
-    %saveas(figB, strcat('./cos2_time_cutoff_6_opticycles/E-field_',zeroes,num2str(i_time),'.png'));
+    dir = './Lin_Ortho_Pulses_tau_sweep_from_0/';
+    saveas(figA, strcat(dir,'Envelope_E-field_Magnitude',zeroes,num2str(i_tau),'.png'));
+    saveas(figB, strcat(dir,'E-field_',zeroes,num2str(i_tau),'.png'));
 
 
 
@@ -180,7 +183,9 @@ for i_tau=50:50
     hold on
     plot([Px(max1),Px(max2)],[0,0],'Color','r','LineWidth',2);  %Draws line between peaks
     text((Px(max1)+Px(max2))/2,0.2,strp,'Interpreter','latex','BackgroundColor','cyan');
-    %saveas(fig,strcat('./Lab_Conditions_Tau_Sweep/Momentum_Distribution_',zeroes,num2str(i_tau),'.png'))
+    
+    
+    saveas(fig,strcat(dir,'Momentum_Distribution_',zeroes,num2str(i_tau),'.png'))
 
 end
 
