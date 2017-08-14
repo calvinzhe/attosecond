@@ -27,7 +27,7 @@ Ey(nt)=NaN;
 F(nt)=NaN;
 Fd(nt)=NaN;
 
-polarization = 'Lin Ortho'; %Polarization variable (see below)
+polarization = 'Lin Ident'; %Polarization variable (see below)
 pc = 1; p1 = 1; p2 = 1; po = 1; poi=0;
 if strcmp(polarization, 'LR')
     p1 = -1; p2 = 1;
@@ -43,8 +43,11 @@ elseif strcmp(polarization, 'RR')
     p1 = 1; p2 = 1;
 end
 
-for i_tau=1:50
-    tau = i_tau*T/6/50;
+n_tau = 10;
+tau_list = zeros(n_tau,1);
+for i_tau=1:n_tau
+    tau_list(i_tau) = (i_tau-1)*4*T/n_tau;
+    tau = tau_list(i_tau);
     parfor i=1:nt
         t(i) = 4*(2*i-nt-1)*dt;
         F(i)=exp(-(t(i)+tau/2)^2/T^2);
@@ -77,7 +80,7 @@ for i_tau=1:50
     elseif i_tau < 1000, zeroes = '';
     end
     
-    dir = './Lin_Ortho_Pulses_tau_sweep_from_0/';
+    dir = './Lab_Conditions_Lin_Ident_tau_sweep/';
     saveas(figA, strcat(dir,'Envelope_E-field_Magnitude',zeroes,num2str(i_tau),'.png'));
     saveas(figB, strcat(dir,'E-field_',zeroes,num2str(i_tau),'.png'));
 
@@ -124,14 +127,14 @@ for i_tau=1:50
             %K=sqrt(Px(ix)^2+Py(iy)^2);
             %Mx(ix,iy)=sqrt(128/3)*sqrt(K)*((K-I1)/(-K-I1))^(I1/k)*sqrt(1+coth(pi/K));
             %
-            Mx(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Px(ix)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
+            Mx(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Px(ix)/(Px(ix)^2+Py(iy)^2+2*Ip)^3; %Approximated field-free dipole transition element
             My(ix,iy)=(sqrt(-1)*2^(3.5)*(2*Ip)^(5/4)/pi)*Py(iy)/(Px(ix)^2+Py(iy)^2+2*Ip)^3;
             jkM=0;
             for it=1:nt
                 phase=0;
                 for it2=it:nt %phase = Integral (t to tf) (Px(x)-Ax(t))^2/2 + (Py(y)-Ay(t))^2/2
                     %phase=phase+dt*( (Px(ix)-Ax(it2))^2/2+(Py(iy)-Ay(it2))^2/2+Ip +0.1*(F(it)+Fd(it)) );
-                    phase=phase+dt*( (Px(ix)+Ax(it2))^2/2+(Py(iy)+Ay(it2))^2/2+Ip );
+                    phase=phase+dt*( (Px(ix)+Ax(it2))^2/2+(Py(iy)+Ay(it2))^2/2+Ip );    %Quasiclassical Action (Where is speed of light?)
                 end
                 %jkM = Integral (1 to tf) i*(Ex(t)*M(x,y)+Ey(t)*M(x,y))*e^(-i*phi)dt
                 jkM=jkM+sqrt(-1)*dt*Ex(it)*Mx(ix,iy)*exp(-sqrt(-1)*phase);
@@ -149,6 +152,7 @@ for i_tau=1:50
     xlabel('Px (a.u.)');
     ylabel('Py (a.u.)');
     axis([-1 1 -1 1]);
+    caxis([0 1]);
     title('Photoelectron Momentum Distribution');
     str1 = {strcat('$$\tau = ', num2str(round(tau,1)), '\ au$$'), ...
             strcat('$$T = ', num2str(round(T,1)), '\ au$$'), ...
@@ -183,11 +187,49 @@ for i_tau=1:50
     hold on
     plot([Px(max1),Px(max2)],[0,0],'Color','r','LineWidth',2);  %Draws line between peaks
     text((Px(max1)+Px(max2))/2,0.2,strp,'Interpreter','latex','BackgroundColor','cyan');
-    
-    
+
     saveas(fig,strcat(dir,'Momentum_Distribution_',zeroes,num2str(i_tau),'.png'))
 
+    
+    %Energy radial distribution
+    PAmp = abs(P').^2;
+    %EofR = zeros(int32(round(nx^2+ny^2)),n_tau);
+    nr = round(sqrt((nx/2)^2+(ny/2)^2));
+    r = 1:nr;
+    EAmpofR = zeros(nr,n_tau);
+    PofR = zeros(nr,1);
+    fileID = fopen('text.txt','a');
+    for ir=1:nr
+        for ix=1:nx
+            for iy=1:ny
+                if ir == round(sqrt((ix-nx/2)^2+(iy-ny/2)^2))
+                    str = strcat(num2str(ir),',', num2str(ix),',', ...
+                        num2str(iy),',', num2str(sqrt(Px(ix)^2+Py(iy)^2)),'\r\n');
+                    fprintf(fileID, str);
+                    PofR(ir) = sqrt(Px(ix)^2+Py(iy)^2);
+                    EAmpofR(ir,i_tau) = EAmpofR(ir,i_tau) + PAmp(ix,iy);
+                end
+            end
+        end
+    end
+    EofR = zeros(nr,1);
+    for ir=1:nr
+       EofR(ir) = PofR(ir)^2/2;
+       EAmpofR(ir,i_tau) = EAmpofR(ir,i_tau)/max(EAmpofR(:,i_tau));
+    end
+    fclose(fileID);
 end
+
+%E v tau
+fig_E_tau = figure;
+imagesc(tau_list,EofR,EAmpofR);
+set(gca, 'YDir','normal');
+axis([0 max(tau_list) 0 max(EofR)]);
+colorbar;
+caxis([0 1]);
+xlabel('tau (a.u.)');
+ylabel('Energy (a.u.)');
+saveas(fig_E_tau,strcat(dir,'E_vs_tau.png'))
 
 
 toc
