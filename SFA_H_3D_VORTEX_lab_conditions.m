@@ -43,7 +43,7 @@ elseif strcmp(polarization, 'RR')
     p1 = 1; p2 = 1;
 end
 
-n_tau = 10;
+n_tau = 500;
 tau_list = zeros(n_tau,1);
 for i_tau=1:n_tau
     tau_list(i_tau) = (i_tau-1)*4*T/n_tau;
@@ -59,18 +59,21 @@ for i_tau=1:n_tau
     
     plotrange = linspace(min(t),max(t),nt);
 
-    figA = figure;
+    figA = figure('visible','off');
     plot(plotrange,E0*F/sqrt(2),'b', ...
             plotrange,E0*Fd/sqrt(2),'r', ...
             plotrange,sqrt(Ex.^2+Ey.^2),'g');
     legend('1st Pulse Envelope','2nd Pulse Envelope','E-field Magnitude');
     xlabel('time');
+    axis([min(plotrange) max(plotrange) 0 1]);
+    
 
-    figB = figure;
+    figB = figure('visible','off');
     plot3(plotrange,Ex,Ey);
     xlabel('time');
     ylabel('Ex');
     zlabel('Ey');
+    axis([min(plotrange) max(plotrange) -1 1 -1 1]);
     
     
 
@@ -80,11 +83,11 @@ for i_tau=1:n_tau
     elseif i_tau < 1000, zeroes = '';
     end
     
-    dir = './Lab_Conditions_Lin_Ident_tau_sweep/';
+    dir = './Lab_Conditions_Lin_Ident_tau_sweep_2/';
     saveas(figA, strcat(dir,'Envelope_E-field_Magnitude',zeroes,num2str(i_tau),'.png'));
     saveas(figB, strcat(dir,'E-field_',zeroes,num2str(i_tau),'.png'));
 
-
+    
 
     %Vector potential
     % E(t) = -dA(t)/dt  =>  A(t) = -Integral (t0 to t) E(t')dt'
@@ -145,14 +148,14 @@ for i_tau=1:n_tau
         ix
     end
 
-    fig = figure;
+    fig = figure('visible','off');
     imagesc(Px,Py,abs(P').^2);
     set(gca, 'YDir','normal');
     colorbar;
     xlabel('Px (a.u.)');
     ylabel('Py (a.u.)');
     axis([-1 1 -1 1]);
-    caxis([0 1]);
+    caxis([0 150]);
     title('Photoelectron Momentum Distribution');
     str1 = {strcat('$$\tau = ', num2str(round(tau,1)), '\ au$$'), ...
             strcat('$$T = ', num2str(round(T,1)), '\ au$$'), ...
@@ -196,29 +199,36 @@ for i_tau=1:n_tau
     %EofR = zeros(int32(round(nx^2+ny^2)),n_tau);
     nr = round(sqrt((nx/2)^2+(ny/2)^2));
     r = 1:nr;
-    EAmpofR = zeros(nr,n_tau);
-    PofR = zeros(nr,1);
-    fileID = fopen('text.txt','a');
-    for ir=1:nr
+    EAmpofR(nr,n_tau) = NaN;
+    PofR(nr) = NaN;
+    parfor ir=1:nr
         for ix=1:nx
             for iy=1:ny
                 if ir == round(sqrt((ix-nx/2)^2+(iy-ny/2)^2))
                     str = strcat(num2str(ir),',', num2str(ix),',', ...
                         num2str(iy),',', num2str(sqrt(Px(ix)^2+Py(iy)^2)),'\r\n');
-                    fprintf(fileID, str);
                     PofR(ir) = sqrt(Px(ix)^2+Py(iy)^2);
                     EAmpofR(ir,i_tau) = EAmpofR(ir,i_tau) + PAmp(ix,iy);
                 end
             end
         end
     end
-    EofR = zeros(nr,1);
+    save(strcat(dir,'data.mat'),'EAmpofR','PofR','tau_list','nr','n_tau','dir');
+    
+    
+end
+toc
+
+%%
+
+EofR(nr) = NaN;
+for i_tau=1:n_tau
     for ir=1:nr
        EofR(ir) = PofR(ir)^2/2;
-       EAmpofR(ir,i_tau) = EAmpofR(ir,i_tau)/max(EAmpofR(:,i_tau));
+       EAmpofR(ir,i_tau) = EAmpofR(ir,i_tau)/max(max(EAmpofR(:,:)));
     end
-    fclose(fileID);
 end
+
 
 %E v tau
 fig_E_tau = figure;
@@ -229,12 +239,10 @@ colorbar;
 caxis([0 1]);
 xlabel('tau (a.u.)');
 ylabel('Energy (a.u.)');
+title('Photoelectron Energy Distribution');
 saveas(fig_E_tau,strcat(dir,'E_vs_tau.png'))
 
-
-toc
-
-
+%%
 
 % figure
 % pcolor(Px,Py,abs(P').^2);
