@@ -3,6 +3,7 @@
 clear,clc,tic
 close all
 I1=sqrt(-1);
+opengl('save', 'software');
 
 tic
 
@@ -11,54 +12,64 @@ nt=500;
 W= 0.0577; %3/27.2;    %0.1103 angular frequency => Period = 2*pi/W = 56.9675 => F = 0.0176
 lambda = (3*10^8)/(W/(2*pi))*(2.419*10^-17)/10^-9;  %wavelength in nm
 nc = 6;
-T=nc*pi/W;  %Pulse width = N*Period = 6*[2*3.14/(3/27.2)] = 341.8 | e^(-T^2/T^2) = e^(-1) = 0.3679
+T=nc*pi/W;  %Pulse width = nc*(optical period) = nc*(pi/W) for Gaussian
 %T=2000; %pulse width in atomic units
 tau=4*T;       %Pulse separation
 phi1 = 0;
 phi2 = 0;
-E0=sqrt(3.5e15/3.5e16);
-Ip=0.9037/6;  %H=12.13/27.2  |  He=0.9037 for He
+E0=sqrt(3.5e14/3.5e16);
+Ip=12.13/27.2;  %Ionization potential in au (1 Hartree = 27.2eV)  |  He=0.9037 for He
 ksi=1;
-dt=T/nt;   %8*341.8/(100-1) = 27.62 Time increment for loop iteration
+dt=T/nt;   %Time increment for loop iteration
 t(nt)=NaN;
 td(nt)=NaN;
 Ex(nt)=NaN;
 Ey(nt)=NaN;
 F(nt)=NaN;
 Fd(nt)=NaN;
+dir = './Lab_Conditions_Lin_XX_phi_sweep_2/';
 
-polarization = 'Lin Ident'; %Polarization variable (see below)
-pc = 1; p1 = 1; p2 = 1; po = 1; poi=0;
-if strcmp(polarization, 'LR')
-    p1 = -1; p2 = 1;
-elseif strcmp(polarization, 'RL')
-    p1 = 1; p2 = -1;
-elseif strcmp(polarization, 'Lin Ident')
-    py = 0;
-elseif strcmp(polarization, 'Lin Ortho')
-    py = 1; po = 0; poi = 1;        %Polarization orthogonal identical CEP
-elseif strcmp(polarization, 'LL')
-    p1 = -1; p2 = -1;
-elseif strcmp(polarization, 'RR')
-    p1 = 1; p2 = 1;
+polarization = 'Linear XX'; %Polarization variable (see below)
+p1x = 1; p2x = 1; p1y = 1; p2y = 1; p1w = 1; p2w = 1; %Circular RR Default
+if strcmp(polarization, 'Circular LR')
+    p1w = -1; p2w = 1;
+elseif strcmp(polarization, 'Circular RL')
+    p1w = 1; p2w = -1;
+elseif strcmp(polarization, 'Linear XX')
+    p1y = 0; p2y = 0;
+elseif strcmp(polarization, 'Linear YY')
+    p1x = 0; p2x = 0;
+elseif strcmp(polarization, 'Linear XY')
+    p1y = 0; p2x = 0;
+elseif strcmp(polarization, 'Linear YX')
+    p1x = 0; p2y = 0;
+elseif strcmp(polarization, 'Circular LL')
+    p1w = -1; p2w = -1;
+elseif strcmp(polarization, 'Circular RR')
+    p1w = 1; p2w = 1;
 end
 
-n_tau = 500;
-tau_list = zeros(n_tau,1);
-for i_tau=1:n_tau
-    tau_list(i_tau) = (i_tau-1)*4*T/n_tau;
-    tau = tau_list(i_tau);
+n_phi = 150;
+phi_list = zeros(n_phi,1);
+for i_phi=100:100
+    phi_list(i_phi) = (i_phi-1)*2*pi/n_phi-pi;
+    phi2 = phi_list(i_phi);
     parfor i=1:nt
         t(i) = 4*(2*i-nt-1)*dt;
         F(i)=exp(-(t(i)+tau/2)^2/T^2);
         Fd(i)=exp(-(t(i)-tau/2)^2/T^2);
-        Ex(i)=   F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p1*W*(t(i)+tau/2)+phi1)    + po*1*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p2*W*(t(i)-tau/2)+phi2);
-        Ey(i)=   po*py*F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p1*W*(t(i)+tau/2)+phi1) + py*1*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p2*W*(t(i)-tau/2)+poi*pi/2+phi2);
+        Ex(i)=   p1x*F(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p1w*W*(t(i)+tau/2)+phi1) + p2x*Fd(i)*E0    /(1+ksi^2)^0.5*cos(1.0*p2w*W*(t(i)-tau/2)+phi2);
+        Ey(i)=   p1y*F(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p1w*W*(t(i)+tau/2)+phi1) + p2y*Fd(i)*E0*ksi/(1+ksi^2)^0.5*sin(1.0*p2w*W*(t(i)-tau/2)+phi2);
     end
 
-    
     plotrange = linspace(min(t),max(t),nt);
+    
+    if i_phi < 10, zeroes = '00';
+    elseif i_phi < 100, zeroes = '0';
+    elseif i_phi < 1000, zeroes = '';
+    end
 
+    %{
     figA = figure('visible','off');
     plot(plotrange,E0*F/sqrt(2),'b', ...
             plotrange,E0*Fd/sqrt(2),'r', ...
@@ -66,7 +77,6 @@ for i_tau=1:n_tau
     legend('1st Pulse Envelope','2nd Pulse Envelope','E-field Magnitude');
     xlabel('time');
     axis([min(plotrange) max(plotrange) 0 1]);
-    
 
     figB = figure('visible','off');
     plot3(plotrange,Ex,Ey);
@@ -75,18 +85,9 @@ for i_tau=1:n_tau
     zlabel('Ey');
     axis([min(plotrange) max(plotrange) -1 1 -1 1]);
     
-    
-
-    
-    if i_tau < 10, zeroes = '00';
-    elseif i_tau < 100, zeroes = '0';
-    elseif i_tau < 1000, zeroes = '';
-    end
-    
-    dir = './Lab_Conditions_Lin_Ident_tau_sweep_2/';
-    saveas(figA, strcat(dir,'Envelope_E-field_Magnitude',zeroes,num2str(i_tau),'.png'));
-    saveas(figB, strcat(dir,'E-field_',zeroes,num2str(i_tau),'.png'));
-
+    saveas(figA, strcat(dir,'Envelope_E-field_Magnitude',zeroes,num2str(i_phi),'.png'));
+    saveas(figB, strcat(dir,'E-field_',zeroes,num2str(i_phi),'.png'));
+    %}
     
 
     %Vector potential
@@ -109,7 +110,7 @@ for i_tau=1:n_tau
     Px(nx)=NaN;
     dpx=2/(nx-1);
     parfor i=1:nx                      %Setting up the x momentum array list
-        Px(i)=(i-nx/2-1/2)*dpx;     %Px in [-49.5,49.5] in increments of dpx=1/33
+        Px(i)=(i-nx/2-1/2)*dpx;
     end
     ny=200;
     Py(ny)=NaN;
@@ -147,22 +148,21 @@ for i_tau=1:n_tau
         end
         ix
     end
-
+    pamp = log(abs(P').^2);
     fig = figure('visible','off');
-    imagesc(Px,Py,abs(P').^2);
+    imagesc(Px,Py,pamp);
     set(gca, 'YDir','normal');
     colorbar;
     xlabel('Px (a.u.)');
     ylabel('Py (a.u.)');
     axis([-1 1 -1 1]);
-    caxis([0 150]);
     title('Photoelectron Momentum Distribution');
     str1 = {strcat('$$\tau = ', num2str(round(tau,1)), '\ au$$'), ...
             strcat('$$T = ', num2str(round(T,1)), '\ au$$'), ...
             strcat('$$\lambda = ', num2str(round(lambda,1)),'\ nm$$')};
     text(-0.95,0.80,str1,'Interpreter','latex','BackgroundColor','yellow');
-    str2 = {strcat('$$\phi_1 = ', num2str(round(phi1/pi,1)), '\ \pi$$'), ...
-            strcat('$$\phi_2 = ', num2str(round(phi2/pi,1)), '\ \pi$$')};
+    str2 = {strcat('$$\phi_1 = ', num2str(round(phi1/pi,2)), '\ \pi$$'), ...
+            strcat('$$\phi_2 = ', num2str(round(phi2/pi,2)), '\ \pi$$')};
     text(-0.95,-0.85,str2,'Interpreter','latex','BackgroundColor','yellow');
     str3 = {strcat('$$n_c = ', num2str(nc),'$$')};
     text(0.5,0.90,str3,'Interpreter','latex','BackgroundColor','yellow');
@@ -191,7 +191,7 @@ for i_tau=1:n_tau
     plot([Px(max1),Px(max2)],[0,0],'Color','r','LineWidth',2);  %Draws line between peaks
     text((Px(max1)+Px(max2))/2,0.2,strp,'Interpreter','latex','BackgroundColor','cyan');
 
-    saveas(fig,strcat(dir,'Momentum_Distribution_',zeroes,num2str(i_tau),'.png'))
+    saveas(fig,strcat(dir,'Momentum_Distribution_logAmp_',zeroes,num2str(i_phi),'.png'))
 
     
     %Energy radial distribution
@@ -199,7 +199,7 @@ for i_tau=1:n_tau
     %EofR = zeros(int32(round(nx^2+ny^2)),n_tau);
     nr = round(sqrt((nx/2)^2+(ny/2)^2));
     r = 1:nr;
-    EAmpofR(nr,n_tau) = NaN;
+    EAmpofR(nr,n_phi) = NaN;
     PofR(nr) = NaN;
     parfor ir=1:nr
         for ix=1:nx
@@ -208,39 +208,38 @@ for i_tau=1:n_tau
                     str = strcat(num2str(ir),',', num2str(ix),',', ...
                         num2str(iy),',', num2str(sqrt(Px(ix)^2+Py(iy)^2)),'\r\n');
                     PofR(ir) = sqrt(Px(ix)^2+Py(iy)^2);
-                    EAmpofR(ir,i_tau) = EAmpofR(ir,i_tau) + PAmp(ix,iy);
+                    EAmpofR(ir,i_phi) = EAmpofR(ir,i_phi) + PAmp(ix,iy);
                 end
             end
         end
     end
-    save(strcat(dir,'data.mat'),'EAmpofR','PofR','tau_list','nr','n_tau','dir');
+    %save(strcat(dir,'data.mat'),'EAmpofR','PofR','phi_list','nr','n_phi','dir');
     
     
 end
 toc
 
 %%
-
 EofR(nr) = NaN;
-for i_tau=1:n_tau
+for i_phi=1:n_phi
     for ir=1:nr
        EofR(ir) = PofR(ir)^2/2;
-       EAmpofR(ir,i_tau) = EAmpofR(ir,i_tau)/max(max(EAmpofR(:,:)));
+       EAmpofR(ir,i_phi) = EAmpofR(ir,i_phi)/max(max(EAmpofR(:,:)));
     end
 end
+EAmpofR(:,n_phi)=0;
+phi_list = round(phi_list./pi, 4);
+EAmpofR = EAmpofR;
 
-
-%E v tau
-fig_E_tau = figure;
-imagesc(tau_list,EofR,EAmpofR);
-set(gca, 'YDir','normal');
-axis([0 max(tau_list) 0 max(EofR)]);
+fig_E_phi2 = figure('visible','on');
+contourf(phi_list,EofR,EAmpofR,50,'edgecolor','none');
+axis([min(phi_list) max(phi_list) 0 max(EofR)]);
 colorbar;
-caxis([0 1]);
-xlabel('tau (a.u.)');
+%caxis([0 1]);
+xlabel('$$\Delta\phi = \phi_2-\phi_1 = \phi_2-0=\phi_2\ (in\ multiples\ of\ pi)$$','Interpreter','latex');
 ylabel('Energy (a.u.)');
 title('Photoelectron Energy Distribution');
-saveas(fig_E_tau,strcat(dir,'E_vs_tau.png'))
+saveas(fig_E_phi2,strcat(dir,'E_vs_phi_contour.png'))
 
 %%
 
