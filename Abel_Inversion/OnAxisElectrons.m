@@ -26,8 +26,23 @@ ExampleImage=squeeze(C(:,:,1));
 
 figure, imagesc(ExampleImage), axis square, colormap gray
 
-xlabel('z (pixels)');
-ylabel('r (pixels)');
+xlabel('r (pixels)');
+ylabel('z (pixels)');
+
+UR = flipud(ExampleImage);
+LR = ExampleImage;
+LL = fliplr(ExampleImage);
+UL = flipud(LL);
+
+TotalImage(500,500)=NaN;
+TotalImage(1:250,1:250)=UL;
+TotalImage(1:250,251:500)=UR;
+TotalImage(251:500,1:250)=LL;
+TotalImage(251:500,251:500)=LR;
+
+figure, imagesc(TotalImage), axis square, colormap gray
+xlabel('r (pixels)');
+ylabel('z (pixels)');
 
 %%%NOTE: Indices for a 2D matrix in Matlab are ordered (row#, column#).
 %%%This means that in this figure, the first index is the vertical axis r 
